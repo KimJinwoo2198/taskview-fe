@@ -1,5 +1,14 @@
 export type Audience = "product" | "operations" | "support" | "executive";
 export type ViewStatus = "proposed" | "approved" | "rejected" | "blocked";
+export type Role = "requester" | "data_owner" | "admin";
+
+export interface User {
+  id: string;
+  email: string;
+  display_name: string;
+  role: Role;
+  created_at: string;
+}
 
 export interface TransformPlanItem {
   source: "product" | "operations" | "voc";
@@ -66,8 +75,8 @@ export interface TaskView {
   };
   preview_rows: Array<Record<string, string | number>>;
   created_at: string;
+  created_by: string | null;
   reviewed_by: string | null;
   review_reason: string | null;
   evidence: EvidenceContract | null;
 }
-
