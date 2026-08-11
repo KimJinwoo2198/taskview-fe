@@ -131,6 +131,10 @@ export function TaskViewWorkbench() {
       setUser(null);
       setView(null);
       setRecentViews([]);
+      setAuthMode("login");
+      setDisplayName("");
+      setEmail("");
+      setPassword("");
       setLoading(false);
     }
   }
