@@ -4,3 +4,5 @@ node_modules/
 *.log
 *.tsbuildinfo
 .gstack/
+.playwright-cli/
+output/

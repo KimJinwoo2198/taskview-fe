@@ -1,6 +1,5 @@
-import { TaskViewWorkbench } from "@/components/task-view-workbench";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <TaskViewWorkbench />;
+  redirect("/dashboard");
 }
-
