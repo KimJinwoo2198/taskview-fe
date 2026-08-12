@@ -40,6 +40,16 @@ function unavailableResponse() {
   return NextResponse.json({ detail: "TaskView BE에 연결할 수 없습니다." }, { status: 503 });
 }
 
+function expireSessionCookie(response: NextResponse) {
+  response.cookies.set(sessionCookie, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: new Date(0),
+  });
+}
+
 export function rejectCrossSiteMutation(request: Request): NextResponse | null {
   const origin = request.headers.get("origin");
   if (!origin) return null;
@@ -73,6 +83,23 @@ export async function proxyAuthenticatedToBackend(path: string, init?: RequestIn
   headers.set("authorization", `Bearer ${token}`);
   try {
     return toNextResponse(await callBackend(path, { ...init, headers }));
+  } catch {
+    return unavailableResponse();
+  }
+}
+
+export async function getBrowserSessionUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(sessionCookie)?.value;
+  if (!token) return NextResponse.json(null);
+  try {
+    const result = await callBackend("/v1/auth/me", {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (result.response.status !== 401) return toNextResponse(result);
+    const response = NextResponse.json(null);
+    expireSessionCookie(response);
+    return response;
   } catch {
     return unavailableResponse();
   }
@@ -148,12 +175,6 @@ export async function destroyBrowserSession() {
     }
   }
   const response = new NextResponse(null, { status: 204 });
-  response.cookies.set(sessionCookie, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    expires: new Date(0),
-  });
+  expireSessionCookie(response);
   return response;
 }

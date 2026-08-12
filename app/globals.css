@@ -54,8 +54,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .hero h1 { margin: 0; max-width: 850px; font-size: clamp(40px, 5.4vw, 76px); line-height: 1.12; letter-spacing: -.055em; }
 .heroCopy { margin: 0 0 8px; max-width: 440px; font-size: 15px; line-height: 1.9; color: var(--muted); }
 
-.workspace { max-width: 1440px; min-height: 720px; margin: 0 auto 56px; display: grid; grid-template-columns: minmax(340px, .72fr) minmax(600px, 1.55fr); border: 1px solid var(--line); background: var(--white); box-shadow: 0 24px 70px rgba(16,37,61,.10); }
-.composerPanel { padding: 38px; border-right: 1px solid var(--line); background: var(--paper-strong); }
+.workspace { max-width: 1440px; min-width: 0; min-height: 720px; margin: 0 auto 56px; display: grid; grid-template-columns: minmax(340px, .72fr) minmax(600px, 1.55fr); border: 1px solid var(--line); background: var(--white); box-shadow: 0 24px 70px rgba(16,37,61,.10); }
+.composerPanel { min-width: 0; padding: 38px; border-right: 1px solid var(--line); background: var(--paper-strong); }
 .panelHeading { display: flex; gap: 18px; align-items: center; margin-bottom: 40px; }
 .stepNumber { display: grid; place-items: center; width: 44px; height: 44px; color: white; background: var(--blue); font: 500 13px Menlo, monospace; }
 .panelHeading .sectionKicker { margin-bottom: 3px; color: var(--blue); }
@@ -69,19 +69,21 @@ select { height: 48px; padding: 0 12px; }
 .primaryButton { width: 100%; margin-top: 24px; padding: 16px 18px; display: flex; justify-content: space-between; border: 0; background: var(--ink); color: white; font-weight: 700; }
 .primaryButton:hover { background: var(--blue); }
 .primaryButton span { font-size: 20px; line-height: 1; }
+.busyHint { margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .agentNote { margin-top: 30px; padding: 18px 0; display: flex; gap: 12px; border-top: 1px solid #c9c3b8; color: var(--muted); font-size: 12px; line-height: 1.65; }
 .agentNote p { margin: 0; }
 .agentNote strong { display: block; color: var(--ink); }
 .agentGlyph { color: var(--blue); font-size: 20px; }
-.recentSection { margin-top: 14px; padding-top: 24px; border-top: 1px solid #c9c3b8; }
+.recentSection { min-width: 0; margin-top: 14px; padding-top: 24px; border-top: 1px solid #c9c3b8; }
 .recentHeading { display: flex; align-items: center; justify-content: space-between; }
 .recentHeading .sectionKicker { margin: 0; color: var(--blue); }
 .recentHeading > span { display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; background: var(--ink); color: white; font: 10px Menlo, monospace; }
 .recentEmpty { margin: 18px 0 0; color: var(--muted); font-size: 12px; }
-.recentList { margin-top: 12px; display: grid; gap: 7px; }
-.recentList button { width: 100%; padding: 12px; border: 1px solid #cec8bd; background: rgba(255,253,248,.55); text-align: left; color: var(--ink); }
+.recentList { min-width: 0; margin-top: 12px; display: grid; gap: 7px; }
+.recentList button { width: 100%; min-width: 0; max-width: 100%; padding: 12px; border: 1px solid #cec8bd; background: rgba(255,253,248,.55); text-align: left; color: var(--ink); }
 .recentList button:hover, .recentList button.active { border-color: var(--blue); background: var(--white); }
 .recentList button > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
+.recentList button > .recentRequester { margin-top: 5px; color: #40546b; font: 9px Menlo, monospace; font-weight: 400; overflow-wrap: anywhere; }
 .recentList small { margin-top: 7px; display: flex; align-items: center; gap: 6px; color: var(--muted); font: 9px Menlo, monospace; }
 .statusDot { width: 7px; height: 7px; border-radius: 50%; background: #9a9a9a; }
 .statusDot-proposed { background: #d38a0c; }
@@ -100,6 +102,7 @@ select { height: 48px; padding: 0 12px; }
 .resultContent { padding: 38px; }
 .resultHeader { display: flex; justify-content: space-between; gap: 28px; align-items: flex-start; }
 .resultHeader h2 { max-width: 620px; font-size: 26px; }
+.requesterIdentity { margin: 9px 0 0; color: var(--muted); font: 10px Menlo, monospace; overflow-wrap: anywhere; }
 .status { flex: none; padding: 8px 11px; border: 1px solid currentColor; font: 500 11px Menlo, monospace; }
 .status-proposed { color: #8e5b00; background: #fff7dd; }
 .status-approved { color: var(--green); background: #e7f8f1; }
@@ -145,11 +148,12 @@ tbody tr:nth-child(even) { background: #f8f5ef; }
 .evidenceStamp { display: grid; place-items: center; flex: none; width: 76px; height: 76px; border: 1px solid #8ed4bf; border-radius: 50%; font: 500 9px Menlo, monospace; transform: rotate(-8deg); }
 .evidenceCard p:not(.sectionKicker) { margin: 8px 0; color: #c0e3d8; font-size: 12px; }
 .evidenceCard code { color: #e3fff6; }
-.pendingCard { margin-top: 36px; padding: 22px; border: 1px solid #d9c27c; border-left: 4px solid #d38a0c; background: #fff9e8; }
+.pendingCard { margin-top: 36px; padding: 22px; display: flex; align-items: center; justify-content: space-between; gap: 18px; border: 1px solid #d9c27c; border-left: 4px solid #d38a0c; background: #fff9e8; }
 .pendingCard .sectionKicker { margin-bottom: 6px; color: #8e5b00; }
 .pendingCard h3 { margin: 0; font-size: 16px; }
 .pending-blocked, .pending-rejected { border-color: #e2b1aa; border-left-color: #b5362d; background: #fff0ed; }
 .pending-blocked .sectionKicker, .pending-rejected .sectionKicker { color: #b5362d; }
+.policyRepairButton { flex: none; padding: 10px 12px; border: 1px solid #b5362d; background: white; color: #9b2f28; font-size: 11px; font-weight: 700; }
 .refineRow { margin-top: 12px; display: flex; gap: 8px; }
 .refineRow input { padding: 12px; }
 .refineRow button { flex: none; padding: 0 14px; border: 1px solid var(--ink); color: var(--ink); background: transparent; font-size: 12px; }
@@ -197,12 +201,13 @@ footer { max-width: 1440px; margin: 0 auto; padding: 0 4vw 40px; display: flex; 
   .hero { padding: 46px 18px 32px; }
   .hero h1 { font-size: 39px; }
   .composerPanel, .resultContent { padding: 24px 20px; }
-  .formRow, .metricStrip { grid-template-columns: 1fr 1fr; }
+  .formRow { grid-template-columns: 1fr; }
+  .metricStrip { grid-template-columns: 1fr 1fr; }
   .metricStrip div:nth-child(2) { border-right: 0; }
   .metricStrip div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .transformItem { grid-template-columns: 1fr auto; }
   .transformItem p { grid-column: 1 / -1; }
-  .approvalCard, .evidenceCard { align-items: flex-start; flex-direction: column; }
+  .approvalCard, .evidenceCard, .pendingCard { align-items: flex-start; flex-direction: column; }
   .refineRow { flex-direction: column; }
   .refineRow button { padding: 12px; }
   footer { padding: 0 18px 30px; flex-direction: column; gap: 8px; }

@@ -76,6 +76,10 @@ export interface TaskView {
   preview_rows: Array<Record<string, string | number>>;
   created_at: string;
   created_by: string | null;
+  requester: {
+    display_name: string;
+    email: string;
+  } | null;
   reviewed_by: string | null;
   review_reason: string | null;
   evidence: EvidenceContract | null;

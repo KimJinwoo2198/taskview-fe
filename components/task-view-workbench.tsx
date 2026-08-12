@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import type { Audience, TaskView, User } from "@/lib/types";
 
@@ -20,6 +20,8 @@ const roleLabels: Record<User["role"], string> = {
   admin: "관리자",
 };
 
+type BusyAction = "compile" | "open" | "decision" | "refine";
+
 function statusLabel(status: TaskView["status"]) {
   return {
     proposed: "승인 대기",
@@ -37,7 +39,9 @@ async function readJson(response: Response) {
     if (Array.isArray(detail)) {
       const messages = detail
         .map((item) =>
-          item && typeof item === "object" && "msg" in item ? String(item.msg) : null,
+          item && typeof item === "object" && "msg" in item
+            ? String(item.msg).replace(/^Value error,\s*/i, "")
+            : null,
         )
         .filter(Boolean);
       if (messages.length) throw new Error(messages.join(" "));
@@ -60,11 +64,13 @@ export function TaskViewWorkbench() {
   const [recentViews, setRecentViews] = useState<TaskView[]>([]);
   const [refinement, setRefinement] = useState("");
   const [loading, setLoading] = useState(false);
+  const [busyAction, setBusyAction] = useState<BusyAction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const operationGeneration = useRef(0);
 
   const loadViews = useCallback(async () => {
     const response = await fetch("/api/taskviews", { cache: "no-store" });
-    setRecentViews((await readJson(response)) as TaskView[]);
+    return (await readJson(response)) as TaskView[];
   }, []);
 
   useEffect(() => {
@@ -73,11 +79,7 @@ export function TaskViewWorkbench() {
       try {
         const response = await fetch("/api/auth/me", { cache: "no-store" });
         if (!active) return;
-        if (response.status === 401) {
-          setUser(null);
-          return;
-        }
-        setUser((await readJson(response)) as User);
+        setUser((await readJson(response)) as User | null);
       } catch (requestError) {
         if (active) {
           setUser(null);
@@ -93,9 +95,19 @@ export function TaskViewWorkbench() {
 
   useEffect(() => {
     if (!user) return;
-    void loadViews().catch((requestError) => {
-      setError(requestError instanceof Error ? requestError.message : "Task View 목록을 불러오지 못했습니다.");
-    });
+    let active = true;
+    void loadViews()
+      .then((views) => {
+        if (active) setRecentViews(views);
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(requestError instanceof Error ? requestError.message : "Task View 목록을 불러오지 못했습니다.");
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, [loadViews, user]);
 
   async function authenticate(event: FormEvent) {
@@ -123,6 +135,8 @@ export function TaskViewWorkbench() {
   }
 
   async function logout() {
+    operationGeneration.current += 1;
+    setBusyAction(null);
     setLoading(true);
     setError(null);
     try {
@@ -141,7 +155,8 @@ export function TaskViewWorkbench() {
 
   async function compile(event: FormEvent) {
     event.preventDefault();
-    setLoading(true);
+    const generation = ++operationGeneration.current;
+    setBusyAction("compile");
     setError(null);
     try {
       const response = await fetch("/api/taskviews/preview", {
@@ -150,31 +165,44 @@ export function TaskViewWorkbench() {
         body: JSON.stringify({ purpose, audience, ttl_days: ttlDays }),
       });
       const nextView = (await readJson(response)) as TaskView;
+      if (generation !== operationGeneration.current) return;
       setView(nextView);
-      await loadViews();
+      const views = await loadViews();
+      if (generation === operationGeneration.current) setRecentViews(views);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "알 수 없는 오류입니다.");
+      if (generation === operationGeneration.current) {
+        setError(requestError instanceof Error ? requestError.message : "알 수 없는 오류입니다.");
+      }
     } finally {
-      setLoading(false);
+      if (generation === operationGeneration.current) setBusyAction(null);
     }
   }
 
   async function openView(viewId: string) {
-    setLoading(true);
+    const generation = ++operationGeneration.current;
+    setBusyAction("open");
     setError(null);
     try {
       const response = await fetch(`/api/taskviews/${viewId}`, { cache: "no-store" });
-      setView((await readJson(response)) as TaskView);
+      const nextView = (await readJson(response)) as TaskView;
+      if (generation !== operationGeneration.current) return;
+      setView(nextView);
+      setPurpose(nextView.purpose);
+      setAudience(nextView.audience);
+      setTtlDays(nextView.ttl_days);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Task View를 열지 못했습니다.");
+      if (generation === operationGeneration.current) {
+        setError(requestError instanceof Error ? requestError.message : "Task View를 열지 못했습니다.");
+      }
     } finally {
-      setLoading(false);
+      if (generation === operationGeneration.current) setBusyAction(null);
     }
   }
 
   async function decide(approved: boolean) {
     if (!view) return;
-    setLoading(true);
+    const generation = ++operationGeneration.current;
+    setBusyAction("decision");
     setError(null);
     try {
       const response = await fetch(`/api/taskviews/${view.id}/decision`, {
@@ -185,32 +213,46 @@ export function TaskViewWorkbench() {
           reason: approved ? "목적과 최소화 범위를 확인했습니다." : "요청 범위를 다시 조정해 주세요.",
         }),
       });
-      setView((await readJson(response)) as TaskView);
-      await loadViews();
+      const nextView = (await readJson(response)) as TaskView;
+      if (generation !== operationGeneration.current) return;
+      setView(nextView);
+      const views = await loadViews();
+      if (generation === operationGeneration.current) setRecentViews(views);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "알 수 없는 오류입니다.");
+      if (generation === operationGeneration.current) {
+        setError(requestError instanceof Error ? requestError.message : "알 수 없는 오류입니다.");
+      }
     } finally {
-      setLoading(false);
+      if (generation === operationGeneration.current) setBusyAction(null);
     }
   }
 
-  async function refine() {
-    if (!view || !refinement.trim()) return;
-    setLoading(true);
+  async function refine(options?: { instruction?: string; ttlDays?: number }) {
+    const instruction = options?.instruction ?? refinement.trim();
+    const nextTtlDays = options?.ttlDays ?? ttlDays;
+    if (!view || !instruction) return;
+    const generation = ++operationGeneration.current;
+    setBusyAction("refine");
     setError(null);
     try {
       const response = await fetch(`/api/taskviews/${view.id}/refine`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ instruction: refinement }),
+        body: JSON.stringify({ instruction, ttl_days: nextTtlDays }),
       });
-      setView((await readJson(response)) as TaskView);
+      const nextView = (await readJson(response)) as TaskView;
+      if (generation !== operationGeneration.current) return;
+      setView(nextView);
+      setTtlDays(nextView.ttl_days);
       setRefinement("");
-      await loadViews();
+      const views = await loadViews();
+      if (generation === operationGeneration.current) setRecentViews(views);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "알 수 없는 오류입니다.");
+      if (generation === operationGeneration.current) {
+        setError(requestError instanceof Error ? requestError.message : "알 수 없는 오류입니다.");
+      }
     } finally {
-      setLoading(false);
+      if (generation === operationGeneration.current) setBusyAction(null);
     }
   }
 
@@ -268,7 +310,7 @@ export function TaskViewWorkbench() {
         <div className="topbarActions">
           <div className="topbarMeta"><span className="liveDot" /> Local AI <span className="divider" /> Policy 2026.08</div>
           <div className="userChip"><span>{user.display_name}</span><small>{roleLabels[user.role]}</small></div>
-          <button className="logoutButton" disabled={loading} onClick={logout} type="button">로그아웃</button>
+          <button className="logoutButton" disabled={loading} onClick={logout} type="button">{loading ? "종료 중…" : "로그아웃"}</button>
         </div>
       </header>
 
@@ -287,13 +329,14 @@ export function TaskViewWorkbench() {
               <div><label htmlFor="audience">사용 조직</label><select id="audience" value={audience} onChange={(event) => setAudience(event.target.value as Audience)}>{Object.entries(audienceLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
               <div><label htmlFor="ttl">유효 기간</label><select id="ttl" value={ttlDays} onChange={(event) => setTtlDays(Number(event.target.value))}><option value={1}>1일</option><option value={3}>3일</option><option value={7}>7일</option><option value={14}>14일 · 정책 검토</option></select></div>
             </div>
-            <button className="primaryButton" disabled={loading} type="submit"><span>{loading ? "컴파일 중…" : "Task View 컴파일"}</span><span aria-hidden="true">↗</span></button>
+            <button className="primaryButton" disabled={busyAction !== null} type="submit"><span>{busyAction === "compile" ? "컴파일 중…" : "Task View 컴파일"}</span><span aria-hidden="true">↗</span></button>
+            {busyAction === "compile" && <p className="busyHint" role="status">로컬 Qwen이 목적을 분석하고 있습니다. 보통 3~15초 정도 걸립니다.</p>}
           </form>
-          <div className="agentNote"><span className="agentGlyph">✦</span><p><strong>Agent 역할</strong> 목적 구조화 · 카탈로그 검색 · 안전한 변환 제안</p></div>
+          <div className="agentNote"><span className="agentGlyph">✦</span><p><strong>Agent 역할</strong> 목적 구조화 · 승인 소스 선택 · 정책 기반 최소 변환</p></div>
           <section className="recentSection">
             <div className="recentHeading"><p className="sectionKicker">RECENT VIEWS</p><span>{recentViews.length}</span></div>
             {recentViews.length === 0 ? <p className="recentEmpty">아직 만든 Task View가 없습니다.</p> : (
-              <div className="recentList">{recentViews.map((item) => <button className={view?.id === item.id ? "active" : ""} key={item.id} onClick={() => openView(item.id)} type="button"><span>{item.plan.purpose_spec.decision_to_support}</span><small><span className={`statusDot statusDot-${item.status}`} />{statusLabel(item.status)} · {new Date(item.created_at).toLocaleDateString("ko-KR")}</small></button>)}</div>
+              <div className="recentList">{recentViews.map((item) => <button className={view?.id === item.id ? "active" : ""} disabled={busyAction !== null} key={item.id} onClick={() => openView(item.id)} type="button"><span>{item.plan.purpose_spec.decision_to_support}</span>{canDecide && item.requester && <span className="recentRequester">{item.requester.display_name} · {item.requester.email}</span>}<small><span className={`statusDot statusDot-${item.status}`} />{statusLabel(item.status)} · {new Date(item.created_at).toLocaleDateString("ko-KR")}</small></button>)}</div>
             )}
           </section>
         </aside>
@@ -303,7 +346,7 @@ export function TaskViewWorkbench() {
             <div className="emptyState"><div className="orbit"><span>✦</span></div><p className="sectionKicker">READY TO COMPILE</p><h2>목적이 입력되면<br />View 설계가 여기에 나타납니다.</h2><ol><li><span>1</span>AI가 목적과 필요한 데이터를 해석</li><li><span>2</span>정책 엔진이 최소화·변환 규칙 검사</li><li><span>3</span>소유자 승인 후 Evidence 생성</li></ol></div>
           ) : (
             <div className="resultContent">
-              <div className="resultHeader"><div><p className="sectionKicker">TASK VIEW · {view.id}</p><h2>{view.plan.purpose_spec.decision_to_support}</h2></div><span className={`status status-${view.status}`}>{statusLabel(view.status)}</span></div>
+              <div className="resultHeader"><div><p className="sectionKicker">TASK VIEW · {view.id}</p><h2>{view.plan.purpose_spec.decision_to_support}</h2>{canDecide && view.requester && <p className="requesterIdentity">요청자 {view.requester.display_name} · {view.requester.email}</p>}</div><span className={`status status-${view.status}`}>{statusLabel(view.status)}</span></div>
               <div className="metricStrip"><div><span>UTILITY</span><strong>{view.utility.utility_score}</strong><small>/100</small></div><div><span>SOURCES</span><strong>{view.plan.selected_sources.length}</strong><small>개</small></div><div><span>FIELDS</span><strong>{view.utility.selected_field_count}</strong><small>개</small></div><div><span>TTL</span><strong>{view.ttl_days}</strong><small>일</small></div></div>
 
               <section className="resultSection"><div className="sectionTitle"><span>02</span><h3>변환 계획</h3></div><div className="transformList">{view.plan.transformations.map((item, index) => <article className="transformItem" key={`${item.output_field}-${index}`}><div className="transformPath"><code>{item.input_fields.join(" + ")}</code><span>→</span><code>{item.output_field}</code></div><span className={`transformTag tag-${item.transformation}`}>{item.transformation}</span><p>{item.rationale}</p></article>)}</div></section>
@@ -315,12 +358,12 @@ export function TaskViewWorkbench() {
               {view.evidence ? (
                 <section className="evidenceCard"><div className="evidenceStamp">VERIFIED</div><div><p className="sectionKicker">EVIDENCE CONTRACT</p><h3>승인된 목적과 데이터가 연결되었습니다.</h3><p>승인자 {view.evidence.approved_by} · 최소 그룹 {view.evidence.minimum_group_size}건 · 총 {view.evidence.row_count}건</p><code>sha256:{view.evidence.content_sha256.slice(0, 24)}…</code></div></section>
               ) : view.status === "proposed" && canDecide ? (
-                <section className="approvalCard"><div><p className="sectionKicker">OWNER DECISION</p><h3>목적과 최소화 범위를 검토해 주세요.</h3></div><div className="approvalActions"><button className="secondaryButton" disabled={loading} onClick={() => decide(false)}>거절</button><button className="approveButton" disabled={loading} onClick={() => decide(true)}>승인 및 생성</button></div></section>
+                <section className="approvalCard"><div><p className="sectionKicker">OWNER DECISION</p><h3>목적과 최소화 범위를 검토해 주세요.</h3></div><div className="approvalActions"><button className="secondaryButton" disabled={busyAction !== null} onClick={() => decide(false)}>거절</button><button className="approveButton" disabled={busyAction !== null} onClick={() => decide(true)}>{busyAction === "decision" ? "처리 중…" : "승인 및 생성"}</button></div></section>
               ) : (
-                <section className={`pendingCard pending-${view.status}`}><div><p className="sectionKicker">{view.status === "proposed" ? "OWNER DECISION" : "WORKFLOW STATUS"}</p><h3>{view.status === "proposed" ? "데이터 소유자의 승인을 기다리고 있습니다." : view.status === "blocked" ? "정책 차단 항목을 보완해야 합니다." : "거절 사유를 반영해 설계를 보완해 주세요."}</h3></div></section>
+                <section className={`pendingCard pending-${view.status}`}><div><p className="sectionKicker">{view.status === "proposed" ? "OWNER DECISION" : "WORKFLOW STATUS"}</p><h3>{view.status === "proposed" ? "데이터 소유자의 승인을 기다리고 있습니다." : view.status === "blocked" ? "정책 차단 항목을 보완해야 합니다." : "거절 사유를 반영해 설계를 보완해 주세요."}</h3></div>{view.status === "blocked" && view.policy_findings.some((finding) => finding.code === "TTL_LIMIT") && <button className="policyRepairButton" disabled={busyAction !== null} onClick={() => refine({ instruction: "TTL을 정책 기준에 맞게 7일로 줄여 주세요", ttlDays: 7 })} type="button">{busyAction === "refine" ? "재검토 중…" : "TTL 7일로 낮추고 재검토"}</button>}</section>
               )}
 
-              {!view.evidence && <div className="refineRow"><input aria-label="보완 요청" placeholder="예: 서울/경기를 수도권으로 묶어줘" value={refinement} onChange={(event) => setRefinement(event.target.value)} /><button disabled={loading || !refinement.trim()} onClick={refine}>Agent에게 보완 요청</button></div>}
+              {!view.evidence && <div className="refineRow"><input aria-label="보완 요청" placeholder="예: 서울/경기를 수도권으로 묶어줘" value={refinement} onChange={(event) => setRefinement(event.target.value)} /><button disabled={busyAction !== null || !refinement.trim()} onClick={() => refine()}>{busyAction === "refine" ? "보완 중…" : "Agent에게 보완 요청"}</button></div>}
             </div>
           )}
           {error && <div className="errorToast" role="alert">{error}<button aria-label="오류 닫기" onClick={() => setError(null)}>×</button></div>}
