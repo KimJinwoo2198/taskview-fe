@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     environment:
       TASKVIEW_BE_URL: ${TASKVIEW_BE_URL:?TASKVIEW_BE_URL is required}
+      TASKVIEW_COOKIE_SECURE: ${TASKVIEW_COOKIE_SECURE:-true}
     ports:
       - "${FE_BIND_ADDRESS:-0.0.0.0}:${FE_PORT:-3000}:3000"
     healthcheck:
@@ -15,3 +16,10 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+    networks:
+      - needex
+
+networks:
+  needex:
+    name: ${NEEDEX_NETWORK:-needex_internal}
+    external: true

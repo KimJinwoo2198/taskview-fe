@@ -7,6 +7,8 @@ import { NextResponse } from "next/server";
 const backendUrl = process.env.TASKVIEW_BE_URL ?? "http://127.0.0.1:8200";
 const sessionCookie = "taskview_session";
 const oauthStateCookie = "taskview_oauth_state";
+const secureCookies =
+  process.env.NODE_ENV === "production" && process.env.TASKVIEW_COOKIE_SECURE !== "false";
 
 interface BackendResult {
   response: Response;
@@ -51,7 +53,7 @@ function unavailableResponse() {
 function expireSessionCookie(response: NextResponse) {
   response.cookies.set(sessionCookie, "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies,
     sameSite: "lax",
     path: "/",
     expires: new Date(0),
@@ -161,7 +163,7 @@ export async function establishSession(
     );
     response.cookies.set(sessionCookie, payload.session_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookies,
       sameSite: "lax",
       path: "/",
       expires: new Date(payload.expires_at),
@@ -192,7 +194,7 @@ export async function refreshBrowserSession() {
     const response = NextResponse.json({ user: payload.user });
     response.cookies.set(sessionCookie, payload.session_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookies,
       sameSite: "lax",
       path: "/",
       expires: new Date(payload.expires_at),
@@ -241,7 +243,7 @@ export async function beginGoogleOAuth(request: Request) {
     const response = NextResponse.redirect(authorizationUrl);
     response.cookies.set(oauthStateCookie, state, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookies,
       sameSite: "lax",
       path: "/api/auth/google/callback",
       maxAge: 600,
@@ -302,7 +304,7 @@ export async function completeGoogleOAuth(request: Request) {
     const response = NextResponse.redirect(new URL(nextPath, request.url));
     response.cookies.set(sessionCookie, payload.session_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: secureCookies,
       sameSite: "lax",
       path: "/",
       expires: new Date(payload.expires_at),
