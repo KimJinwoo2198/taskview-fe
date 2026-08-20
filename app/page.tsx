@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { LandingScreen } from "@/components/taskview/auth/landing-screen";
 
 export default function Home() {
-  redirect("/dashboard");
+  return <LandingScreen />;
 }

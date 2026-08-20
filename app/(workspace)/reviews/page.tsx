@@ -1,5 +1,5 @@
-import { ReviewQueueScreen } from "@/components/screens/review-queue-screen";
+import { redirect } from "next/navigation";
 
 export default function ReviewsPage() {
-  return <ReviewQueueScreen />;
+  redirect("/approvals");
 }

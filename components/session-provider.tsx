@@ -1,8 +1,10 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { CircleAlert, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
 import { requestJson } from "@/lib/client-api";
 import type { User } from "@/lib/types";
 
@@ -27,6 +29,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           router.replace("/login");
           return;
         }
+        if (nextUser.email_verified === false) {
+          router.replace(`/verify-email?email=${encodeURIComponent(nextUser.email)}`);
+          return;
+        }
+        if (nextUser.onboarding_status === "workspace_setup") {
+          router.replace("/onboarding/workspace");
+          return;
+        }
+        if (nextUser.onboarding_status === "team_invite") {
+          router.replace("/onboarding/invite");
+          return;
+        }
         setUser(nextUser);
       })
       .catch((cause) => {
@@ -45,10 +59,25 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }
 
   if (error) {
-    return <main className="standaloneState"><div className="errorNotice" role="alert"><span className="noticeIcon">!</span><p>{error}</p><button onClick={() => location.reload()} type="button">다시 시도</button></div></main>;
+    return (
+      <main className="grid min-h-screen place-items-center bg-tv-canvas p-6">
+        <div className="tv-card flex max-w-lg items-center gap-3 p-5" role="alert">
+          <CircleAlert className="size-5 shrink-0 text-tv-red-600" />
+          <p className="flex-1 text-sm text-tv-slate-dark">{error}</p>
+          <Button onClick={() => location.reload()} size="sm" variant="outline">다시 시도</Button>
+        </div>
+      </main>
+    );
   }
   if (!user) {
-    return <main className="standaloneState"><div className="pageLoading" role="status"><span className="loadingMark">✦</span><p>안전한 세션을 확인하고 있습니다.</p></div></main>;
+    return (
+      <main className="grid min-h-screen place-items-center bg-tv-canvas p-6">
+        <div className="flex flex-col items-center gap-3 text-tv-gray" role="status">
+          <LoaderCircle aria-hidden="true" className="size-7 animate-spin text-tv-blue-500" />
+          <p className="text-[12px]">안전한 세션을 확인하고 있습니다.</p>
+        </div>
+      </main>
+    );
   }
 
   return <SessionContext.Provider value={{ user, logout }}>{children}</SessionContext.Provider>;

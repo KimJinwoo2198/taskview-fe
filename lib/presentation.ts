@@ -1,4 +1,4 @@
-import type { Audience, Role, TaskView, ViewStatus } from "@/lib/types";
+import type { Audience, Role, Needex, ViewStatus } from "@/lib/types";
 
 export const audienceLabels: Record<Audience, string> = {
   product: "제품",
@@ -20,7 +20,7 @@ export const statusLabels: Record<ViewStatus, string> = {
   blocked: "정책 차단",
 };
 
-export const sourceLabels: Record<TaskView["plan"]["selected_sources"][number], string> = {
+export const sourceLabels: Record<Needex["plan"]["selected_sources"][number], string> = {
   product: "제품 이벤트",
   operations: "운영 데이터",
   voc: "고객의 소리",

@@ -8,6 +8,9 @@ export interface User {
   display_name: string;
   role: Role;
   created_at: string;
+  email_verified?: boolean;
+  onboarding_status?: "email_verification" | "workspace_setup" | "team_invite" | "complete";
+  auth_provider?: "password" | "google";
 }
 
 export interface TransformPlanItem {
@@ -47,7 +50,7 @@ export interface EvidenceContract {
   content_sha256: string;
 }
 
-export interface TaskView {
+export interface Needex {
   id: string;
   status: ViewStatus;
   purpose: string;

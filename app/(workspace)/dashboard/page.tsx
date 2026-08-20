@@ -1,5 +1,5 @@
-import { DashboardScreen } from "@/components/screens/dashboard-screen";
+import { DashboardCore } from "@/components/taskview/core/dashboard-core";
 
 export default function DashboardPage() {
-  return <DashboardScreen />;
+  return <DashboardCore />;
 }

@@ -6,15 +6,15 @@ import { useMemo, useState } from "react";
 import { useSession } from "@/components/session-provider";
 import { EmptyState, ErrorNotice, PageLoading } from "@/components/ui/feedback";
 import { ViewRow } from "@/components/ui/view-row";
-import { useTaskViews } from "@/hooks/use-task-views";
+import { useNeedexs } from "@/hooks/use-task-views";
 import { statusLabels } from "@/lib/presentation";
 import type { ViewStatus } from "@/lib/types";
 
 type Filter = "all" | ViewStatus;
 
-export function TaskViewListScreen() {
+export function NeedexListScreen() {
   const { user } = useSession();
-  const { views, loading, error, reload } = useTaskViews();
+  const { views, loading, error, reload } = useNeedexs();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const canReview = user.role === "data_owner" || user.role === "admin";

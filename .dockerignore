@@ -1,6 +1,14 @@
 .git
 .next
 node_modules
-.env.local
+.pnpm-store
+.playwright-cli
+output
+.env
+.env.*
 *.log
-
+.DS_Store
+**/.DS_Store
+coverage
+playwright-report
+test-results

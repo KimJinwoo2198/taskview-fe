@@ -2,9 +2,9 @@ import Link from "next/link";
 
 import { StatusBadge } from "@/components/ui/status-badge";
 import { audienceLabels, formatDate, shortId } from "@/lib/presentation";
-import type { TaskView } from "@/lib/types";
+import type { Needex } from "@/lib/types";
 
-export function ViewRow({ view, showRequester = false }: { view: TaskView; showRequester?: boolean }) {
+export function ViewRow({ view, showRequester = false }: { view: Needex; showRequester?: boolean }) {
   return (
     <Link className="viewRow" href={`/taskviews/${view.id}`}>
       <div className="viewIdentity">

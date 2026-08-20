@@ -1,5 +1,5 @@
-import { NewTaskViewScreen } from "@/components/screens/new-task-view-screen";
+import { CreateCore } from "@/components/taskview/core/create-core";
 
-export default function NewTaskViewPage() {
-  return <NewTaskViewScreen />;
+export default function NewNeedexPage() {
+  return <CreateCore />;
 }

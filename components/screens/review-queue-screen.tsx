@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useSession } from "@/components/session-provider";
 import { EmptyState, ErrorNotice, PageLoading } from "@/components/ui/feedback";
 import { ViewRow } from "@/components/ui/view-row";
-import { useTaskViews } from "@/hooks/use-task-views";
+import { useNeedexs } from "@/hooks/use-task-views";
 
 export function ReviewQueueScreen() {
   const { user } = useSession();
-  const { views, loading, error, reload } = useTaskViews();
+  const { views, loading, error, reload } = useNeedexs();
   const canReview = user.role === "data_owner" || user.role === "admin";
   const proposed = views.filter((view) => view.status === "proposed");
   const approved = views.filter((view) => view.status === "approved").length;

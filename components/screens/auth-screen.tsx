@@ -58,7 +58,7 @@ export function AuthScreen() {
   return (
     <main className="authShell">
       <section className="authStory">
-        <a className="brand" href="#access"><span className="brandMark">TV</span><span>TaskView</span></a>
+        <a className="brand" href="#access"><span className="brandMark">TV</span><span>Needex</span></a>
         <div className="authStatement">
           <p className="eyebrow">PURPOSE → SAFE VIEW</p>
           <h1>필요한 데이터만,<br />목적이 허용한 시간만.</h1>
@@ -74,7 +74,7 @@ export function AuthScreen() {
       <section className="authPanel" id="access">
         <div className="authCard">
           <p className="kicker">SECURE ACCESS</p>
-          <h2>{mode === "login" ? "다시 오신 것을 환영합니다." : "TaskView를 시작하세요."}</h2>
+          <h2>{mode === "login" ? "다시 오신 것을 환영합니다." : "Needex를 시작하세요."}</h2>
           <p className="authIntro">인증 정보는 JavaScript에서 읽을 수 없는 보안 쿠키로 관리됩니다.</p>
           <div className="authTabs" role="tablist" aria-label="인증 방식">
             <button aria-selected={mode === "login"} className={mode === "login" ? "active" : ""} onClick={() => { setMode("login"); setError(null); }} role="tab" type="button">로그인</button>

@@ -8,7 +8,7 @@ import { EmptyState, ErrorNotice, PageLoading } from "@/components/ui/feedback";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requestJson } from "@/lib/client-api";
 import { audienceLabels, formatDate, shortId, sourceLabels } from "@/lib/presentation";
-import type { TaskView } from "@/lib/types";
+import type { Needex } from "@/lib/types";
 
 type Tab = "overview" | "policy" | "preview" | "evidence";
 type BusyAction = "decision" | "refine" | null;
@@ -20,9 +20,9 @@ const tabs: Array<{ value: Tab; label: string }> = [
   { value: "evidence", label: "Evidence" },
 ];
 
-export function TaskViewDetailScreen({ viewId }: { viewId: string }) {
+export function NeedexDetailScreen({ viewId }: { viewId: string }) {
   const { user } = useSession();
-  const [view, setView] = useState<TaskView | null>(null);
+  const [view, setView] = useState<Needex | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<BusyAction>(null);
@@ -35,7 +35,7 @@ export function TaskViewDetailScreen({ viewId }: { viewId: string }) {
     setLoading(true);
     setError(null);
     try {
-      setView(await requestJson<TaskView>(`/api/taskviews/${encodeURIComponent(viewId)}`));
+      setView(await requestJson<Needex>(`/api/taskviews/${encodeURIComponent(viewId)}`));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Task View를 불러오지 못했습니다.");
     } finally {
@@ -50,7 +50,7 @@ export function TaskViewDetailScreen({ viewId }: { viewId: string }) {
     setBusy("decision");
     setError(null);
     try {
-      const nextView = await requestJson<TaskView>(`/api/taskviews/${encodeURIComponent(view.id)}/decision`, {
+      const nextView = await requestJson<Needex>(`/api/taskviews/${encodeURIComponent(view.id)}/decision`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ approved, reason: reviewReason.trim() || (approved ? "승인했습니다." : "요청 범위를 다시 조정해 주세요.") }),
@@ -71,7 +71,7 @@ export function TaskViewDetailScreen({ viewId }: { viewId: string }) {
     setBusy("refine");
     setError(null);
     try {
-      const nextView = await requestJson<TaskView>(`/api/taskviews/${encodeURIComponent(view.id)}/refine`, {
+      const nextView = await requestJson<Needex>(`/api/taskviews/${encodeURIComponent(view.id)}/refine`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ instruction, ttl_days: options?.ttlDays ?? view.ttl_days }),
@@ -144,7 +144,7 @@ export function TaskViewDetailScreen({ viewId }: { viewId: string }) {
   );
 }
 
-function Overview({ view }: { view: TaskView }) {
+function Overview({ view }: { view: Needex }) {
   return (
     <div className="tabStack">
       <section className="metricGrid detailMetrics" aria-label="View 품질 지표"><article><p>Utility</p><strong>{view.utility.utility_score}</strong><small>/100</small></article><article><p>선택 소스</p><strong>{view.plan.selected_sources.length}</strong><small>개</small></article><article><p>선택 필드</p><strong>{view.utility.selected_field_count}</strong><small>개</small></article><article><p>제거 필드</p><strong>{view.utility.removed_field_count}</strong><small>개</small></article></section>
@@ -155,7 +155,7 @@ function Overview({ view }: { view: TaskView }) {
   );
 }
 
-function Policy({ view }: { view: TaskView }) {
+function Policy({ view }: { view: Needex }) {
   return (
     <div className="tabStack">
       <section className="detailSection firstSection"><p className="kicker">TRANSFORMATION PLAN</p><h2>최소화 변환 계획</h2><p className="sectionIntro">원본 필드가 목적에 필요한 형태로 어떻게 바뀌는지 확인합니다.</p><div className="transformList">{view.plan.transformations.map((item, index) => <article className="transformItem" key={`${item.output_field}-${index}`}><span className="transformIndex">{String(index + 1).padStart(2, "0")}</span><div className="transformFields"><code>{item.input_fields.join(" + ")}</code><span>→</span><code>{item.output_field}</code></div><span className={`transformTag tag-${item.transformation}`}>{item.transformation}</span><p>{item.rationale}</p></article>)}</div></section>
@@ -164,13 +164,13 @@ function Policy({ view }: { view: TaskView }) {
   );
 }
 
-function Preview({ view }: { view: TaskView }) {
+function Preview({ view }: { view: Needex }) {
   return (
     <section className="detailSection firstSection"><div className="sectionHeader"><div><p className="kicker">MINIMIZED PREVIEW</p><h2>최소화 데이터 미리보기</h2><p className="sectionIntro">승인 전에 실제 반환 형태만 제한된 샘플로 확인합니다.</p></div><span className="countPill">{view.preview_rows.length}행 샘플</span></div><div className="tableWrap"><table><thead><tr>{view.plan.preview_columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{view.preview_rows.map((row, rowIndex) => <tr key={rowIndex}>{view.plan.preview_columns.map((column) => <td key={column}>{String(row[column] ?? "—")}</td>)}</tr>)}</tbody></table></div><p className="tableCaption">직접 식별자와 목적에 불필요한 세부 값은 정책에 따라 제거·그룹화됩니다.</p></section>
   );
 }
 
-function Evidence({ view }: { view: TaskView }) {
+function Evidence({ view }: { view: Needex }) {
   if (!view.evidence) return <EmptyState eyebrow="EVIDENCE PENDING" title="아직 Evidence가 발급되지 않았습니다." description={view.status === "proposed" ? "데이터 소유자가 승인하면 계약 해시와 만료 시점이 여기에 기록됩니다." : "차단 또는 수정 항목을 처리한 뒤 승인을 받아야 합니다."} />;
   const evidence = view.evidence;
   return (

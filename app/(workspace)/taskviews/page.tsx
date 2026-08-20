@@ -1,5 +1,5 @@
-import { TaskViewListScreen } from "@/components/screens/task-view-list-screen";
+import { NeedexsAdminScreen } from "@/components/taskview/admin/taskviews-approvals";
 
-export default function TaskViewsPage() {
-  return <TaskViewListScreen />;
+export default function NeedexsPage() {
+  return <NeedexsAdminScreen />;
 }

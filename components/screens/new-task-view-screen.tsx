@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { ErrorNotice } from "@/components/ui/feedback";
 import { requestJson } from "@/lib/client-api";
 import { audienceLabels } from "@/lib/presentation";
-import type { Audience, TaskView } from "@/lib/types";
+import type { Audience, Needex } from "@/lib/types";
 
 const defaultPurpose = "VOC를 지역과 이슈 유형별로 묶어 다음 스프린트의 제품 개선 우선순위를 정하고 싶다";
 
@@ -24,7 +24,7 @@ const steps = [
   { number: "03", label: "검토", hint: "Agent 컴파일" },
 ];
 
-export function NewTaskViewScreen() {
+export function NewNeedexScreen() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [purpose, setPurpose] = useState(defaultPurpose);
@@ -60,7 +60,7 @@ export function NewTaskViewScreen() {
     setBusy(true);
     setError(null);
     try {
-      const view = await requestJson<TaskView>("/api/taskviews/preview", {
+      const view = await requestJson<Needex>("/api/taskviews/preview", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ purpose: purpose.trim(), audience, ttl_days: ttlDays }),

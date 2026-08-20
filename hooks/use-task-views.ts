@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { requestJson } from "@/lib/client-api";
-import type { TaskView } from "@/lib/types";
+import type { Needex } from "@/lib/types";
 
-export function useTaskViews() {
-  const [views, setViews] = useState<TaskView[]>([]);
+export function useNeedexs() {
+  const [views, setViews] = useState<Needex[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,7 +14,7 @@ export function useTaskViews() {
     setLoading(true);
     setError(null);
     try {
-      setViews(await requestJson<TaskView[]>("/api/taskviews"));
+      setViews(await requestJson<Needex[]>("/api/taskviews"));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Task View 목록을 불러오지 못했습니다.");
     } finally {
